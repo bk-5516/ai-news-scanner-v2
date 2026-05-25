@@ -202,6 +202,76 @@ sources:
     relevance_threshold: 6
     notes: "DISABLED: feeds.reuters.com domain is dead, Google News RSS gives proxy URLs. Check for new feed URL."
 
+  - name: "Bloomberg Technology"
+    feed_url: "https://feeds.bloomberg.com/technology/news.rss"
+    home_url: "https://www.bloomberg.com/technology"
+    tier: 1
+    language: en
+    enabled: true
+    tags: ["Mainstream Media", "Business"]
+    relevance_threshold: 6
+    max_articles_per_run: 20
+    notes: "Paywalled but headlines + snippets visible in RSS; filter hard for AI angle"
+
+  - name: "Wall Street Journal (Tech)"
+    feed_url: "https://feeds.a.dj.com/rss/RSSWSJD.xml"
+    home_url: "https://www.wsj.com/tech"
+    tier: 1
+    language: en
+    enabled: true
+    tags: ["Mainstream Media", "Business"]
+    relevance_threshold: 6
+    max_articles_per_run: 20
+    notes: "Paywalled; headlines visible in RSS"
+
+  - name: "Financial Times (Technology)"
+    feed_url: "https://www.ft.com/technology?format=rss"
+    home_url: "https://www.ft.com/technology"
+    tier: 1
+    language: en
+    enabled: true
+    tags: ["Mainstream Media", "Business", "Analysis"]
+    relevance_threshold: 6
+    max_articles_per_run: 15
+    notes: "Paywalled; very few public RSS items but high-quality when available"
+
+  - name: "Politico (Technology)"
+    feed_url: "https://rss.politico.com/technology.xml"
+    home_url: "https://www.politico.com/technology"
+    tier: 2
+    language: en
+    enabled: true
+    tags: ["Mainstream Media", "Policy & Regulation"]
+    relevance_threshold: 7
+    max_articles_per_run: 20
+    notes: "Mostly US tech policy; only AI regulation and governance stories"
+
+  - name: "Washington Post (Technology)"
+    feed_url: null
+    home_url: "https://www.washingtonpost.com/technology/"
+    tier: 1
+    language: en
+    enabled: false
+    tags: ["Mainstream Media"]
+    relevance_threshold: 6
+    scrape_config:
+      link_selector: "a[data-pb-field='web_headline']"
+      max_links: 20
+    notes: "DISABLED: RSS discontinued; HTML scrape selector needs verification"
+
+  - name: "The Information"
+    feed_url: null
+    home_url: "https://www.theinformation.com"
+    tier: 1
+    language: en
+    enabled: true
+    tags: ["Tech Media", "Analysis"]
+    relevance_threshold: 5
+    scrape_config:
+      link_selector: "a[href*='/articles/']"
+      max_links: 15
+    notes: "Paywalled but headlines visible on homepage; high-quality AI/tech reporting"
+
   # ── Specialty Tech / Hardware ──────────────────────────────────────────────
   - name: "DigiTimes Asia"
     feed_url: null
