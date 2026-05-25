@@ -64,8 +64,7 @@ async def index(
     for a in articles:
         a["vote"] = votes.get(a["id"])
 
-    return templates.TemplateResponse("index.html", {
-        "request": request,
+    return templates.TemplateResponse(request=request, name="index.html", context={
         "articles": articles,
         "categories": CATEGORIES,
         "active_category": category,
@@ -99,8 +98,7 @@ async def health_page(request: Request):
     for s in sources:
         s["category"] = cat_map.get(s["source_name"], "")
 
-    return templates.TemplateResponse("health.html", {
-        "request": request,
+    return templates.TemplateResponse(request=request, name="health.html", context={
         "sources": sources,
         "last_run": dict(last_run) if last_run else None,
         "categories": CATEGORIES,
@@ -119,8 +117,9 @@ async def record_feedback(
     with get_conn() as conn:
         new_vote = upsert_vote(conn, article_id, action)
     return templates.TemplateResponse(
-        "partials/feedback_buttons.html",
-        {"request": request, "article_id": article_id, "vote": new_vote},
+        request=request,
+        name="partials/feedback_buttons.html",
+        context={"article_id": article_id, "vote": new_vote},
     )
 
 
