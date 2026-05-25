@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}AI News Feed{% endblock %}
+
+{% block content %}
+
+<!-- Category tabs -->
+<div class="flex gap-1 mb-4 border-b border-gray-200">
+  {% for cat in categories %}
+  <a href="/?category={{ cat.id }}&min_score={{ min_score }}&days={{ days }}{% if active_theme %}&theme={{ active_theme }}{% endif %}"
+     class="px-4 py-2 text-sm font-medium rounded-t-md border border-b-0
+            {% if active_category == cat.id %}
+              bg-white border-gray-200 text-gray-900 -mb-px
+            {% else %}
+              border-transparent text-gray-500 hover:text-gray-700
+            {% endif %}">
+    {{ cat.label }}
+  </a>
+  {% endfor %}
+</div>
+
+<!-- Controls row -->
+<div class="flex flex-wrap gap-3 mb-4 items-center">
+  <!-- Search -->
+  <form method="get" action="/" class="flex gap-2">
+    <input type="hidden" name="category" value="{{ active_category }}">
+    <input type="hidden" name="days" value="{{ days }}">
+    <input type="hidden" name="min_score" value="{{ min_score }}">
+    <input name="q" value="{{ query }}" placeholder="Search articles…"
+           class="border border-gray-300 rounded px-3 py-1.5 text-sm w-56 focus:outline-none focus:ring-1 focus:ring-blue-500">
+    <button type="submit" class="bg-blue-600 text-white text-sm px-3 py-1.5 rounded hover:bg-blue-700">Search</button>
+    {% if query %}
+    <a href="/?category={{ active_category }}" class="text-sm text-gray-500 py-1.5 hover:text-gray-700">✕ Clear</a>
+    {% endif %}
+  </form>
+
+  <!-- Min score -->
+  <form method="get" action="/" class="flex items-center gap-2">
+    <input type="hidden" name="category" value="{{ active_category }}">
+    <input type="hidden" name="days" value="{{ days }}">
+    {% if active_theme %}<input type="hidden" name="theme" value="{{ active_theme }}">{% endif %}
+    <label class="text-sm text-gray-600">Min score:</label>
+    <select name="min_score" onchange="this.form.submit()"
+            class="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+      {% for s in [3, 4, 5, 6, 7, 8] %}
+      <option value="{{ s }}" {% if min_score == s %}selected{% endif %}>{{ s }}+</option>
+      {% endfor %}
+    </select>
+  </form>
+
+  <!-- Days -->
+  <form method="get" action="/" class="flex items-center gap-2">
+    <input type="hidden" name="category" value="{{ active_category }}">
+    <input type="hidden" name="min_score" value="{{ min_score }}">
+    {% if active_theme %}<input type="hidden" name="theme" value="{{ active_theme }}">{% endif %}
+    <label class="text-sm text-gray-600">Last:</label>
+    <select name="days" onchange="this.form.submit()"
+            class="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+      {% for d, label in [(1,'24h'),(3,'3 days'),(7,'7 days'),(14,'14 days'),(30,'30 days')] %}
+      <option value="{{ d }}" {% if days == d %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </form>
+
+  <!-- Last scan info -->
+  {% if last_run %}
+  <span class="text-xs text-gray-400 ml-auto">
+    Last scan: {{ last_run.started_at[:16].replace('T',' ') }} UTC
+    · {{ last_run.new_articles or 0 }} new
+  </span>
+  {% endif %}
+
+  <!-- Manual scan trigger -->
+  <button id="scan-btn"
+          hx-post="/api/scan"
+          hx-swap="none"
+          hx-on::before-request="this.disabled=true; this.textContent='Scanning…'"
+          hx-on::after-request="this.textContent='Scan started — refresh in ~8 min'"
+          class="text-xs text-gray-500 border border-gray-300 rounded px-2 py-1 hover:bg-gray-50 disabled:opacity-50">
+    Scan now
+  </button>
+</div>
+
+<!-- Theme pills -->
+<div class="flex flex-wrap gap-1.5 mb-5">
+  <a href="/?category={{ active_category }}&min_score={{ min_score }}&days={{ days }}"
+     class="px-2.5 py-1 rounded-full text-xs font-medium border
+            {% if not active_theme %}bg-gray-800 text-white border-gray-800{% else %}bg-white text-gray-600 border-gray-300 hover:border-gray-400{% endif %}">
+    All
+  </a>
+  {% for theme in themes %}
+  <a href="/?category={{ active_category }}&min_score={{ min_score }}&days={{ days }}&theme={{ theme | urlencode }}"
+     class="px-2.5 py-1 rounded-full text-xs font-medium border
+            {% if active_theme == theme %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-300 hover:border-gray-400{% endif %}">
+    {{ theme }}
+  </a>
+  {% endfor %}
+</div>
+
+<!-- Article count -->
+<p class="text-sm text-gray-500 mb-4">
+  {% if query %}
+    {{ articles | length }} result(s) for "<strong>{{ query }}</strong>"
+  {% else %}
+    {{ total }} articles
+    {% if active_theme %} tagged <strong>{{ active_theme }}</strong>{% endif %}
+    · showing {{ offset + 1 }}–{{ [offset + limit, total] | min }}
+  {% endif %}
+</p>
+
+<!-- Article list -->
+{% if articles %}
+<div class="space-y-4">
+  {% for a in articles %}
+  <article class="bg-white rounded-lg border border-gray-200 p-4 hover:border-gray-300 transition-colors">
+    <div class="flex items-start justify-between gap-3">
+      <div class="flex-1 min-w-0">
+        <!-- Source + date -->
+        <div class="flex items-center gap-2 text-xs text-gray-500 mb-1.5">
+          <span class="font-medium text-gray-700">{{ a.source_name }}</span>
+          <span>·</span>
+          {% if a.published_at %}
+            <span>{{ a.published_at[:10] }}</span>
+          {% else %}
+            <span class="text-gray-400 italic">fetched {{ (a.stored_at or '')[:10] }}</span>
+          {% endif %}
+        </div>
+
+        <!-- Title -->
+        <h2 class="text-sm font-semibold text-gray-900 leading-snug mb-2">
+          <a href="{{ a.url }}" target="_blank" rel="noopener"
+             onclick="navigator.sendBeacon('/api/click', new URLSearchParams({article_id: '{{ a.id }}'}))"
+             class="hover:text-blue-700 hover:underline">{{ a.title }}</a>
+        </h2>
+
+        <!-- Summary -->
+        {% if a.summary %}
+        <p class="text-sm text-gray-600 leading-relaxed mb-2.5">{{ a.summary }}</p>
+        {% endif %}
+
+        <!-- Theme tags -->
+        {% if a.themes %}
+        <div class="flex flex-wrap gap-1 mb-1">
+          {% for theme in a.themes %}
+          <a href="/?category={{ active_category }}&theme={{ theme | urlencode }}&min_score={{ min_score }}&days={{ days }}"
+             class="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-100 hover:bg-blue-100">
+            {{ theme }}
+          </a>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Feedback buttons -->
+        {% set article_id = a.id %}{% set vote = a.vote %}
+        {% include "partials/feedback_buttons.html" %}
+      </div>
+
+      <!-- Score badge -->
+      <div class="flex-shrink-0">
+        <span class="score-badge inline-block px-2 py-1 rounded font-bold text-white
+                     {% if a.relevance_score >= 8 %}bg-green-600
+                     {% elif a.relevance_score >= 6 %}bg-blue-600
+                     {% elif a.relevance_score >= 4 %}bg-yellow-500
+                     {% else %}bg-gray-400{% endif %}">
+          {{ a.relevance_score }}
+        </span>
+      </div>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+
+<!-- Pagination -->
+<div class="flex justify-center gap-3 mt-6">
+  {% if offset > 0 %}
+  <a href="?category={{ active_category }}&min_score={{ min_score }}&days={{ days }}{% if active_theme %}&theme={{ active_theme }}{% endif %}&offset={{ [offset - limit, 0] | max }}"
+     class="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">← Previous</a>
+  {% endif %}
+  {% if has_more %}
+  <a href="?category={{ active_category }}&min_score={{ min_score }}&days={{ days }}{% if active_theme %}&theme={{ active_theme }}{% endif %}&offset={{ next_offset }}"
+     class="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">Next →</a>
+  {% endif %}
+</div>
+
+{% else %}
+<div class="text-center py-16 text-gray-400">
+  <p class="text-lg mb-2">No articles found</p>
+  <p class="text-sm">Try lowering the min score, expanding the date range, or running a scan.</p>
+</div>
+{% endif %}
+
+{% endblock %}

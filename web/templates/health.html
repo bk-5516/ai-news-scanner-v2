@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Source Health{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-xl font-semibold text-gray-900">Source Health</h1>
+  {% if last_run %}
+  <span class="text-sm text-gray-500">
+    Last scan: {{ last_run.started_at[:16].replace('T',' ') }} UTC
+  </span>
+  {% endif %}
+</div>
+
+{% if sources %}
+<div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-200">
+      <tr>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Fetched (7d)</th>
+        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Passed (7d)</th>
+        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Success %</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Run</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Error</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for src in sources %}
+      {% set success_pct = ((src.ok_7d / src.runs_7d * 100) | int) if src.runs_7d else 0 %}
+      <tr class="hover:bg-gray-50
+                 {% if src.runs_7d > 0 and success_pct == 0 %}bg-red-50
+                 {% elif src.runs_7d > 0 and success_pct < 70 %}bg-yellow-50
+                 {% endif %}">
+        <td class="px-4 py-3 font-medium text-gray-900">{{ src.source_name }}</td>
+        <td class="px-4 py-3">
+          <span class="px-2 py-0.5 text-xs rounded-full
+                       {% if src.category == 'china_ai' %}bg-orange-100 text-orange-700
+                       {% else %}bg-blue-100 text-blue-700{% endif %}">
+            {{ src.category or '—' }}
+          </span>
+        </td>
+        <td class="px-4 py-3 text-right text-gray-600">{{ src.fetched_7d or 0 }}</td>
+        <td class="px-4 py-3 text-right text-gray-600">{{ src.passed_7d or 0 }}</td>
+        <td class="px-4 py-3 text-right">
+          <span class="font-medium
+                       {% if success_pct == 100 %}text-green-600
+                       {% elif success_pct >= 70 %}text-yellow-600
+                       {% else %}text-red-600{% endif %}">
+            {{ success_pct }}%
+          </span>
+        </td>
+        <td class="px-4 py-3 text-gray-500 text-xs">{{ (src.last_run or '')[:16].replace('T',' ') }}</td>
+        <td class="px-4 py-3 text-red-600 text-xs max-w-xs truncate" title="{{ src.last_error or '' }}">
+          {{ src.last_error or '—' }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="text-center py-16 text-gray-400">
+  <p class="text-lg mb-2">No source data yet</p>
+  <p class="text-sm">Run a scan to populate source health statistics.</p>
+  <button hx-post="/api/scan" hx-swap="none"
+          class="mt-4 px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+    Run Scan Now
+  </button>
+</div>
+{% endif %}
+
+{% endblock %}

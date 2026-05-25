@@ -1,0 +1,203 @@
+category: china_ai
+description: "Chinese-language AI and tech news — business media, AI-focused outlets, and tech blogs"
+
+defaults:
+  fetch_timeout_s: 20
+  max_articles_per_run: 25
+  relevance_threshold: 5
+  rate_limit_rps: 0.3
+
+sources:
+  # ── Dedicated AI Media ─────────────────────────────────────────────────────
+  - name: "机器之心 (Jiqizhixin)"
+    feed_url: null
+    home_url: "https://www.jiqizhixin.com"
+    tier: 1
+    language: zh
+    enabled: false
+    tags: ["AI Research", "Industry"]
+    relevance_threshold: 4
+    max_articles_per_run: 30
+    notes: "DISABLED: fully JS-rendered, no Chinese RSS found. English version covered by Synced (syncedreview.com) in global_ai."
+
+  - name: "量子位 (QbitAI)"
+    feed_url: null
+    home_url: "https://www.qbitai.com"
+    tier: 1
+    language: zh
+    enabled: true
+    tags: ["AI Research", "Industry"]
+    relevance_threshold: 4
+    scrape_config:
+      link_selector: "a[href*='qbitai.com/']"
+      max_links: 30
+    notes: "Fast AI news coverage; good for model releases"
+
+  - name: "AIbase资讯"
+    feed_url: null
+    home_url: "https://www.aibase.com/zh/news"
+    tier: 2
+    language: zh
+    enabled: true
+    tags: ["AI Tools", "Models"]
+    relevance_threshold: 4
+    scrape_config:
+      link_selector: "a[href*='/news/']"
+      max_links: 25
+    notes: "Covers AI tools, applications, and model launches"
+
+  - name: "AI科技评论"
+    feed_url: null
+    home_url: "https://aitechtalk.substack.com"
+    tier: 2
+    language: zh
+    enabled: false
+    tags: ["Analysis"]
+    notes: "URL needs verification before enabling"
+
+  # ── Business & Tech Media ──────────────────────────────────────────────────
+  - name: "极客公园 (GeekPark)"
+    feed_url: null
+    home_url: "https://www.geekpark.net"
+    tier: 2
+    language: zh
+    enabled: false
+    tags: ["Tech Media", "Startups"]
+    relevance_threshold: 5
+    max_articles_per_run: 25
+    notes: "DISABLED: site returns 403 direct, no RSS, Google News RSS gives proxy URLs. Re-enable when RSS found."
+
+  - name: "36氪"
+    feed_url: "https://36kr.com/feed"
+    home_url: "https://36kr.com/information/AI"
+    tier: 2
+    language: zh
+    enabled: true
+    tags: ["Tech Media", "Business", "Funding"]
+    relevance_threshold: 6
+    max_articles_per_run: 25
+    notes: "Full 36Kr RSS feed; LLM will filter for AI relevance"
+
+  - name: "虎嗅 (Huxiu)"
+    feed_url: null
+    home_url: "https://www.huxiu.com"
+    tier: 2
+    language: zh
+    enabled: true
+    tags: ["Tech Media", "Analysis"]
+    relevance_threshold: 6
+    scrape_config:
+      link_selector: "a[href*='/article/']"
+      max_links: 25
+    notes: "Tech opinion and long-form analysis"
+
+  - name: "钛媒体 (TMTPost)"
+    feed_url: "https://www.tmtpost.com/feed"
+    home_url: "https://www.tmtpost.com"
+    tier: 2
+    language: zh
+    enabled: true
+    tags: ["Tech Media", "Business"]
+    relevance_threshold: 6
+    max_articles_per_run: 25
+    notes: "Real RSS feed confirmed working"
+
+  - name: "雷锋网 (Leiphone)"
+    feed_url: null
+    home_url: "https://www.leiphone.com/category/ai"
+    tier: 2
+    language: zh
+    enabled: true
+    tags: ["AI", "Tech Media"]
+    relevance_threshold: 4
+    scrape_config:
+      link_selector: "a[href*='leiphone.com/news/']"
+      max_links: 25
+    notes: "AI section; covers hardware and applications"
+
+  - name: "界面新闻 (Jiemian)"
+    feed_url: null
+    home_url: "https://m.jiemian.com/lists/683.html"
+    tier: 2
+    language: zh
+    enabled: true
+    tags: ["Business Media", "Finance"]
+    relevance_threshold: 6
+    max_articles_per_run: 20
+    scrape_config:
+      link_selector: "a[href*='/article/']"
+      max_links: 25
+    notes: "Mobile version renders titles properly; desktop is JS-rendered"
+
+  - name: "快科技 (MyDrivers)"
+    feed_url: null
+    home_url: "https://www.mydrivers.com"
+    tier: 3
+    language: zh
+    enabled: false
+    tags: ["Tech News", "Hardware"]
+    relevance_threshold: 6
+    max_articles_per_run: 20
+    notes: "DISABLED: JS-rendered, no RSS, Google News RSS gives proxy URLs. Re-enable when RSS found."
+
+  # ── Business / Financial Media ─────────────────────────────────────────────
+  - name: "财新 (Caixin)"
+    feed_url: null
+    home_url: "https://www.caixin.com/tech/"
+    tier: 1
+    language: zh
+    enabled: true
+    tags: ["Business Media", "Finance", "Policy"]
+    relevance_threshold: 5
+    rate_limit_rps: 0.2
+    scrape_config:
+      link_selector: "a[href*='caixin.com/']"
+      max_links: 20
+    notes: "Paywalled content; scrape headlines from index only. High-quality business journalism."
+
+  - name: "证券时报 (Securities Times)"
+    feed_url: null
+    home_url: "https://www.stcn.com"
+    tier: 2
+    language: zh
+    enabled: false
+    tags: ["Finance", "Policy", "Corporate"]
+    relevance_threshold: 6
+    max_articles_per_run: 20
+    notes: "DISABLED: JS-rendered, no RSS, Google News RSS gives proxy URLs. Re-enable when RSS found."
+
+  - name: "新浪科技 (Sina Tech)"
+    feed_url: null
+    home_url: "https://tech.sina.com.cn"
+    tier: 3
+    language: zh
+    enabled: false
+    tags: ["Tech News", "Aggregator"]
+    relevance_threshold: 7
+    max_articles_per_run: 20
+    notes: "DISABLED: JS-rendered, no RSS, Google News RSS gives proxy URLs."
+
+  # ── Security / Policy ──────────────────────────────────────────────────────
+  - name: "安全内参"
+    feed_url: null
+    home_url: "https://www.secrss.com"
+    tier: 2
+    language: zh
+    enabled: true
+    tags: ["Cybersecurity", "Policy"]
+    relevance_threshold: 5
+    scrape_config:
+      link_selector: "a[href*='/articles/']"
+      max_links: 20
+    notes: "Cybersecurity and tech policy; relevant for AI safety/governance coverage"
+
+  - name: "中国科技网"
+    feed_url: null
+    home_url: "http://www.stdaily.com"
+    tier: 2
+    language: zh
+    enabled: false
+    tags: ["State Media", "Science Policy"]
+    relevance_threshold: 5
+    max_articles_per_run: 20
+    notes: "DISABLED: direct HTTP fails, no RSS, Google News gives proxy URLs."

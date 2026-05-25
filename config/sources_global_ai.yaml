@@ -1,0 +1,227 @@
+category: global_ai
+description: "English-language AI and tech news — mainstream media, US AI lab blogs, and AI-focused newsletters"
+
+defaults:
+  fetch_timeout_s: 15
+  max_articles_per_run: 30
+  relevance_threshold: 3
+  rate_limit_rps: 0.5
+
+sources:
+  # ── US AI Lab Blogs ────────────────────────────────────────────────────────
+  - name: "Google DeepMind Blog"
+    feed_url: "https://deepmind.google/blog/rss.xml"
+    home_url: "https://deepmind.google/blog/"
+    tier: 1
+    language: en
+    enabled: true
+    tags: ["US Labs"]
+    relevance_threshold: 2
+    notes: "Almost all posts are directly relevant"
+
+  - name: "Anthropic News"
+    feed_url: null
+    home_url: "https://www.anthropic.com/news"
+    tier: 1
+    language: en
+    enabled: true
+    tags: ["US Labs"]
+    relevance_threshold: 2
+    scrape_config:
+      link_selector: "a[href*='/news/']"
+      max_links: 20
+    notes: "No public RSS; scrape news index"
+
+  - name: "OpenAI Blog"
+    feed_url: "https://openai.com/news/rss.xml"
+    home_url: "https://openai.com/news"
+    tier: 1
+    language: en
+    enabled: true
+    tags: ["US Labs"]
+    relevance_threshold: 2
+    notes: "RSS works with curl/wget UA; browser UA gets 403 on /news but RSS endpoint is open"
+
+  - name: "Meta AI Blog"
+    feed_url: null
+    home_url: "https://ai.meta.com/blog/"
+    tier: 1
+    language: en
+    enabled: true
+    tags: ["US Labs"]
+    relevance_threshold: 2
+    scrape_config:
+      link_selector: "a[href*='/blog/']"
+      max_links: 20
+
+  - name: "Hugging Face Blog"
+    feed_url: "https://huggingface.co/blog/feed.xml"
+    home_url: "https://huggingface.co/blog"
+    tier: 2
+    language: en
+    enabled: true
+    tags: ["AI Research", "Open Source"]
+    relevance_threshold: 3
+
+  - name: "Synced (机器之心 English)"
+    feed_url: "https://syncedreview.com/feed"
+    home_url: "https://syncedreview.com"
+    tier: 1
+    language: en
+    enabled: true
+    tags: ["AI Research", "China", "Industry"]
+    relevance_threshold: 3
+    max_articles_per_run: 10
+    notes: "English edition of Jiqizhixin (机器之心); covers global AI with China perspective"
+
+  # ── AI-Focused Substacks ───────────────────────────────────────────────────
+  - name: "Import AI (Jack Clark)"
+    feed_url: "https://importai.substack.com/feed"
+    home_url: "https://importai.substack.com"
+    tier: 1
+    language: en
+    enabled: true
+    tags: ["Newsletter", "AI Research"]
+    max_articles_per_run: 10
+    relevance_threshold: 3
+
+  - name: "ChinaTalk (Jordan Schneider)"
+    feed_url: "https://chinatalk.substack.com/feed"
+    home_url: "https://chinatalk.substack.com"
+    tier: 1
+    language: en
+    enabled: true
+    tags: ["Newsletter", "China", "Geopolitics"]
+    max_articles_per_run: 10
+    relevance_threshold: 3
+
+  - name: "Interconnected (Kevin Xu)"
+    feed_url: "https://interconnect.substack.com/feed"
+    home_url: "https://interconnect.substack.com"
+    tier: 1
+    language: en
+    enabled: true
+    tags: ["Newsletter", "China", "Tech Strategy"]
+    max_articles_per_run: 10
+    relevance_threshold: 3
+
+  - name: "SemiAnalysis"
+    feed_url: "https://semianalysis.substack.com/feed"
+    home_url: "https://semianalysis.com"
+    tier: 1
+    language: en
+    enabled: true
+    tags: ["Newsletter", "Semiconductors", "Hardware"]
+    max_articles_per_run: 10
+    relevance_threshold: 3
+
+  # ── Tech Media (AI sections) ───────────────────────────────────────────────
+  - name: "The Verge (AI)"
+    feed_url: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"
+    home_url: "https://www.theverge.com/ai-artificial-intelligence"
+    tier: 2
+    language: en
+    enabled: true
+    tags: ["Tech Media"]
+    relevance_threshold: 3
+    notes: "High volume; only strong AI stories"
+
+  - name: "TechCrunch (AI)"
+    feed_url: "https://techcrunch.com/category/artificial-intelligence/feed/"
+    home_url: "https://techcrunch.com/category/artificial-intelligence/"
+    tier: 2
+    language: en
+    enabled: true
+    tags: ["Tech Media"]
+    relevance_threshold: 3
+
+  - name: "MIT Technology Review"
+    feed_url: "https://www.technologyreview.com/feed/"
+    home_url: "https://www.technologyreview.com"
+    tier: 1
+    language: en
+    enabled: true
+    tags: ["Tech Media", "Research"]
+    relevance_threshold: 3
+
+  - name: "Wired"
+    feed_url: "https://www.wired.com/feed/rss"
+    home_url: "https://www.wired.com"
+    tier: 2
+    language: en
+    enabled: true
+    tags: ["Tech Media"]
+    relevance_threshold: 3
+
+  - name: "Ars Technica"
+    feed_url: "https://feeds.arstechnica.com/arstechnica/index"
+    home_url: "https://arstechnica.com"
+    tier: 2
+    language: en
+    enabled: true
+    tags: ["Tech Media"]
+    relevance_threshold: 3
+
+  - name: "VentureBeat (AI)"
+    feed_url: "https://venturebeat.com/category/ai/feed/"
+    home_url: "https://venturebeat.com/category/ai/"
+    tier: 2
+    language: en
+    enabled: true
+    tags: ["Tech Media", "Business"]
+    relevance_threshold: 3
+
+  # ── Business & Financial Media ─────────────────────────────────────────────
+  - name: "NYT Technology"
+    feed_url: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml"
+    home_url: "https://www.nytimes.com/section/technology"
+    tier: 1
+    language: en
+    enabled: true
+    tags: ["Mainstream Media"]
+    relevance_threshold: 3
+    notes: "Full NYT tech feed; LLM will filter for AI relevance"
+
+  - name: "The Economist (Science & Tech)"
+    feed_url: "https://www.economist.com/science-and-technology/rss.xml"
+    home_url: "https://www.economist.com/science-and-technology"
+    tier: 1
+    language: en
+    enabled: true
+    tags: ["Mainstream Media", "Analysis"]
+    relevance_threshold: 3
+    max_articles_per_run: 15
+
+  - name: "Reuters Technology"
+    feed_url: null
+    home_url: "https://www.reuters.com/technology/"
+    tier: 1
+    language: en
+    enabled: false
+    tags: ["Mainstream Media", "Wire"]
+    relevance_threshold: 6
+    notes: "DISABLED: feeds.reuters.com domain is dead, Google News RSS gives proxy URLs. Check for new feed URL."
+
+  # ── Specialty Tech / Hardware ──────────────────────────────────────────────
+  - name: "DigiTimes Asia"
+    feed_url: null
+    home_url: "https://www.digitimes.com/news/a20250101VL200.html"
+    tier: 2
+    language: en
+    enabled: true
+    tags: ["Hardware", "Supply Chain", "Asia"]
+    relevance_threshold: 3
+    scrape_config:
+      link_selector: "a[href*='/news/']"
+      max_links: 20
+    notes: "Key for semiconductor/supply chain news; paywalled but headlines visible"
+
+  - name: "Tom's Hardware"
+    feed_url: "https://www.tomshardware.com/feeds/all"
+    home_url: "https://www.tomshardware.com"
+    tier: 3
+    language: en
+    enabled: true
+    tags: ["Hardware", "Chips"]
+    relevance_threshold: 6
+    notes: "Mostly consumer hardware; only chip/GPU/AI accelerator stories"

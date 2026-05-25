@@ -1,0 +1,22 @@
+<div id="feedback-{{ article_id }}" class="flex items-center gap-1.5 mt-2.5">
+  <button
+    hx-post="/feedback"
+    hx-vals='{"article_id": {{ article_id }}, "action": "upvote"}'
+    hx-target="#feedback-{{ article_id }}"
+    hx-swap="outerHTML"
+    title="Upvote — more like this"
+    class="flex items-center gap-1 px-2 py-0.5 rounded text-xs border transition-colors
+           {% if vote == 'upvote' %}bg-green-100 text-green-700 border-green-300{% else %}text-gray-400 border-gray-200 hover:border-green-300 hover:text-green-600{% endif %}">
+    👍{% if vote == 'upvote' %} Liked{% endif %}
+  </button>
+  <button
+    hx-post="/feedback"
+    hx-vals='{"article_id": {{ article_id }}, "action": "downvote"}'
+    hx-target="#feedback-{{ article_id }}"
+    hx-swap="outerHTML"
+    title="Downvote — not useful"
+    class="flex items-center gap-1 px-2 py-0.5 rounded text-xs border transition-colors
+           {% if vote == 'downvote' %}bg-red-100 text-red-700 border-red-300{% else %}text-gray-400 border-gray-200 hover:border-red-300 hover:text-red-600{% endif %}">
+    👎{% if vote == 'downvote' %} Disliked{% endif %}
+  </button>
+</div>
