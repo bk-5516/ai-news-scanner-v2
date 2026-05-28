@@ -148,12 +148,26 @@ sources:
     language: zh
     enabled: true
     tags: ["Business Media", "Finance", "Policy"]
-    relevance_threshold: 5
+    relevance_threshold: 4
+    rate_limit_rps: 0.2
+    scrape_config:
+      link_selector: "a[href*='caixin.com/']"
+      max_links: 30
+    notes: "Paywalled content; scrape headlines from index only. High-quality business journalism."
+
+  - name: "财新 (Caixin) — 主页"
+    feed_url: null
+    home_url: "https://www.caixin.com/"
+    tier: 1
+    language: zh
+    enabled: true
+    tags: ["Business Media", "Finance", "Policy"]
+    relevance_threshold: 6
     rate_limit_rps: 0.2
     scrape_config:
       link_selector: "a[href*='caixin.com/']"
       max_links: 20
-    notes: "Paywalled content; scrape headlines from index only. High-quality business journalism."
+    notes: "Main Caixin homepage — broader coverage; higher threshold to filter for AI/tech"
 
   - name: "证券时报 (Securities Times)"
     feed_url: null

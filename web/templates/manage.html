@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}Manage — AI News Scanner{% endblock %}
+
+{% block content %}
+<h1 class="text-lg font-semibold text-gray-900 mb-6">Manage</h1>
+
+<div class="space-y-8">
+
+  <!-- ── Keyword Tracker ─────────────────────────────────────────────────── -->
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <h2 class="text-sm font-semibold text-gray-900 mb-1">Keyword Tracker</h2>
+    <p class="text-xs text-gray-500 mb-4">
+      Articles whose title or snippet contain a tracked keyword are always passed to the feed,
+      even if their relevance score is below the threshold.
+    </p>
+
+    <!-- Keyword list -->
+    <div id="keyword-list" class="space-y-1.5 mb-4">
+      {% for kw in keywords %}
+      <div id="kw-{{ kw.id }}" class="flex items-center justify-between px-3 py-2 bg-gray-50 rounded border border-gray-200 text-sm">
+        <div>
+          <span class="font-medium text-gray-800">{{ kw.keyword }}</span>
+          {% if kw.category %}
+          <span class="ml-2 text-xs text-gray-400">{{ kw.category }}</span>
+          {% endif %}
+          {% if kw.notes %}
+          <span class="ml-2 text-xs text-gray-400 italic">{{ kw.notes }}</span>
+          {% endif %}
+        </div>
+        <button
+          hx-delete="/api/keywords/{{ kw.id }}"
+          hx-target="#kw-{{ kw.id }}"
+          hx-swap="outerHTML"
+          hx-confirm="Remove keyword '{{ kw.keyword }}'?"
+          class="text-gray-400 hover:text-red-500 text-xs px-2 py-0.5 rounded hover:bg-red-50 transition-colors">
+          Remove
+        </button>
+      </div>
+      {% else %}
+      <p class="text-xs text-gray-400 italic">No keywords yet.</p>
+      {% endfor %}
+    </div>
+
+    <!-- Add keyword form -->
+    <form hx-post="/manage/keywords"
+          hx-target="#keyword-list"
+          hx-swap="beforeend"
+          hx-on::after-request="this.reset()"
+          class="flex flex-wrap gap-2 items-end">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Keyword</label>
+        <input name="keyword" required placeholder="e.g. 中转站"
+               class="border border-gray-300 rounded px-2 py-1.5 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-blue-500">
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Category (optional)</label>
+        <select name="category"
+                class="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+          <option value="">All categories</option>
+          {% for cat in categories %}
+          <option value="{{ cat.id }}">{{ cat.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Note (optional)</label>
+        <input name="notes" placeholder="why you're tracking this"
+               class="border border-gray-300 rounded px-2 py-1.5 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-blue-500">
+      </div>
+      <button type="submit"
+              class="bg-blue-600 text-white text-sm px-3 py-1.5 rounded hover:bg-blue-700">
+        Add keyword
+      </button>
+    </form>
+
+    <!-- HTMX partial response for new keyword row -->
+    <template id="kw-row-template">
+      <!-- rendered server-side by hx-post response -->
+    </template>
+  </section>
+
+  <!-- ── Custom Sources ──────────────────────────────────────────────────── -->
+  <section class="bg-white rounded-lg border border-gray-200 p-5">
+    <h2 class="text-sm font-semibold text-gray-900 mb-1">Custom Sources</h2>
+    <p class="text-xs text-gray-500 mb-4">
+      Add news domains to scrape. The scanner will fetch the homepage and extract article links.
+      Changes take effect on the next scan.
+    </p>
+
+    <!-- Sources table -->
+    <div class="overflow-x-auto mb-4">
+      <table class="w-full text-sm" id="sources-table">
+        <thead>
+          <tr class="text-xs text-gray-500 border-b border-gray-200">
+            <th class="text-left pb-2 font-medium">Name</th>
+            <th class="text-left pb-2 font-medium">URL</th>
+            <th class="text-left pb-2 font-medium">Category</th>
+            <th class="text-left pb-2 font-medium">Lang</th>
+            <th class="text-left pb-2 font-medium">Threshold</th>
+            <th class="pb-2"></th>
+          </tr>
+        </thead>
+        <tbody id="source-rows">
+          {% for src in sources %}
+          <tr id="src-{{ src.id }}" class="border-b border-gray-100 hover:bg-gray-50">
+            <td class="py-2 pr-4 font-medium text-gray-800">{{ src.name }}</td>
+            <td class="py-2 pr-4 text-gray-500 max-w-xs truncate">
+              <a href="{{ src.home_url }}" target="_blank" class="hover:text-blue-600 hover:underline">{{ src.home_url }}</a>
+            </td>
+            <td class="py-2 pr-4 text-gray-500">{{ src.category }}</td>
+            <td class="py-2 pr-4 text-gray-500">{{ src.language }}</td>
+            <td class="py-2 pr-4 text-gray-500">{{ src.relevance_threshold }}</td>
+            <td class="py-2">
+              <button
+                hx-delete="/api/sources/{{ src.id }}"
+                hx-target="#src-{{ src.id }}"
+                hx-swap="outerHTML"
+                hx-confirm="Remove source '{{ src.name }}'?"
+                class="text-gray-400 hover:text-red-500 text-xs px-2 py-0.5 rounded hover:bg-red-50 transition-colors">
+                Remove
+              </button>
+            </td>
+          </tr>
+          {% else %}
+          <tr id="src-empty"><td colspan="6" class="py-3 text-xs text-gray-400 italic">No custom sources yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Add source form -->
+    <form hx-post="/manage/sources"
+          hx-target="#source-rows"
+          hx-swap="beforeend"
+          hx-on::after-request="this.reset()"
+          class="flex flex-wrap gap-2 items-end">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Display name</label>
+        <input name="name" required placeholder="e.g. 新智元"
+               class="border border-gray-300 rounded px-2 py-1.5 text-sm w-36 focus:outline-none focus:ring-1 focus:ring-blue-500">
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Homepage URL</label>
+        <input name="home_url" required placeholder="https://example.com"
+               class="border border-gray-300 rounded px-2 py-1.5 text-sm w-56 focus:outline-none focus:ring-1 focus:ring-blue-500">
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">RSS feed URL (optional)</label>
+        <input name="feed_url" placeholder="https://example.com/feed"
+               class="border border-gray-300 rounded px-2 py-1.5 text-sm w-56 focus:outline-none focus:ring-1 focus:ring-blue-500">
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Category</label>
+        <select name="category" required
+                class="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+          {% for cat in categories %}
+          <option value="{{ cat.id }}">{{ cat.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Language</label>
+        <select name="language"
+                class="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+          <option value="zh">zh</option>
+          <option value="en">en</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Min score</label>
+        <input name="relevance_threshold" type="number" value="5" min="1" max="10"
+               class="border border-gray-300 rounded px-2 py-1.5 text-sm w-16 focus:outline-none focus:ring-1 focus:ring-blue-500">
+      </div>
+      <button type="submit"
+              class="bg-blue-600 text-white text-sm px-3 py-1.5 rounded hover:bg-blue-700">
+        Add source
+      </button>
+    </form>
+  </section>
+
+</div>
+{% endblock %}

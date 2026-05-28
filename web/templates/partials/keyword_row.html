@@ -1,0 +1,19 @@
+<div id="kw-{{ kw.id }}" class="flex items-center justify-between px-3 py-2 bg-gray-50 rounded border border-gray-200 text-sm">
+  <div>
+    <span class="font-medium text-gray-800">{{ kw.keyword }}</span>
+    {% if kw.category %}
+    <span class="ml-2 text-xs text-gray-400">{{ kw.category }}</span>
+    {% endif %}
+    {% if kw.notes %}
+    <span class="ml-2 text-xs text-gray-400 italic">{{ kw.notes }}</span>
+    {% endif %}
+  </div>
+  <button
+    hx-delete="/api/keywords/{{ kw.id }}"
+    hx-target="#kw-{{ kw.id }}"
+    hx-swap="outerHTML"
+    hx-confirm="Remove keyword '{{ kw.keyword }}'?"
+    class="text-gray-400 hover:text-red-500 text-xs px-2 py-0.5 rounded hover:bg-red-50 transition-colors">
+    Remove
+  </button>
+</div>

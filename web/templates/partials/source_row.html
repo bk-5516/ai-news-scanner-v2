@@ -1,0 +1,19 @@
+<tr id="src-{{ src.id }}" class="border-b border-gray-100 hover:bg-gray-50">
+  <td class="py-2 pr-4 font-medium text-gray-800">{{ src.name }}</td>
+  <td class="py-2 pr-4 text-gray-500 max-w-xs truncate">
+    <a href="{{ src.home_url }}" target="_blank" class="hover:text-blue-600 hover:underline">{{ src.home_url }}</a>
+  </td>
+  <td class="py-2 pr-4 text-gray-500">{{ src.category }}</td>
+  <td class="py-2 pr-4 text-gray-500">{{ src.language }}</td>
+  <td class="py-2 pr-4 text-gray-500">{{ src.relevance_threshold }}</td>
+  <td class="py-2">
+    <button
+      hx-delete="/api/sources/{{ src.id }}"
+      hx-target="#src-{{ src.id }}"
+      hx-swap="outerHTML"
+      hx-confirm="Remove source '{{ src.name }}'?"
+      class="text-gray-400 hover:text-red-500 text-xs px-2 py-0.5 rounded hover:bg-red-50 transition-colors">
+      Remove
+    </button>
+  </td>
+</tr>

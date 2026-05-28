@@ -6,7 +6,12 @@ from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, Query
 from fastapi.responses import FileResponse
 
-from scanner.db import get_conn, get_articles, search_articles, get_source_health, get_last_pipeline_run, log_click
+from scanner.db import (
+    get_conn, get_articles, search_articles, get_source_health,
+    get_last_pipeline_run, log_click,
+    get_all_user_sources, add_user_source, delete_user_source,
+    get_user_keywords, add_user_keyword, delete_user_keyword,
+)
 from scanner.settings import settings
 
 router = APIRouter(prefix="/api")
@@ -94,6 +99,62 @@ async def trigger_scan(background_tasks: BackgroundTasks):
     from scanner.pipeline import run_scan
     background_tasks.add_task(_run_scan_task)
     return {"status": "scan started"}
+
+
+@router.get("/sources")
+def list_user_sources():
+    with get_conn() as conn:
+        rows = get_all_user_sources(conn)
+    return {"sources": [dict(r) for r in rows]}
+
+
+@router.post("/sources", status_code=201)
+def create_user_source(
+    name: str = Form(...),
+    home_url: str = Form(...),
+    feed_url: str = Form(""),
+    category: str = Form(...),
+    language: str = Form("zh"),
+    relevance_threshold: int = Form(5),
+    notes: str = Form(""),
+):
+    with get_conn() as conn:
+        new_id = add_user_source(conn, name=name, home_url=home_url,
+                                  feed_url=feed_url or None, category=category,
+                                  language=language, relevance_threshold=relevance_threshold,
+                                  notes=notes)
+    return {"id": new_id, "name": name}
+
+
+@router.delete("/sources/{source_id}", status_code=204)
+def remove_user_source(source_id: int):
+    with get_conn() as conn:
+        delete_user_source(conn, source_id)
+
+
+@router.get("/keywords")
+def list_keywords():
+    with get_conn() as conn:
+        rows = get_user_keywords(conn)
+    return {"keywords": [dict(r) for r in rows]}
+
+
+@router.post("/keywords", status_code=201)
+def create_keyword(
+    keyword: str = Form(...),
+    category: str = Form(""),
+    notes: str = Form(""),
+):
+    with get_conn() as conn:
+        new_id = add_user_keyword(conn, keyword=keyword,
+                                   category=category or None, notes=notes)
+    return {"id": new_id, "keyword": keyword}
+
+
+@router.delete("/keywords/{keyword_id}", status_code=204)
+def remove_keyword(keyword_id: int):
+    with get_conn() as conn:
+        delete_user_keyword(conn, keyword_id)
 
 
 async def _run_scan_task() -> None:

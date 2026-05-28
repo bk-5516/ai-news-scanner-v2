@@ -220,6 +220,54 @@ def log_click(conn: sqlite3.Connection, article_id: int) -> None:
     )
 
 
+# ── User sources helpers ──────────────────────────────────────────────────────
+
+def get_user_sources(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT * FROM user_sources WHERE enabled = 1 ORDER BY created_at"
+    ).fetchall()
+
+
+def get_all_user_sources(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute("SELECT * FROM user_sources ORDER BY created_at").fetchall()
+
+
+def add_user_source(conn: sqlite3.Connection, name: str, home_url: str,
+                    feed_url: Optional[str], category: str, language: str,
+                    relevance_threshold: int, notes: str) -> int:
+    cur = conn.execute(
+        """INSERT INTO user_sources (name, home_url, feed_url, category, language,
+           relevance_threshold, notes, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (name, home_url, feed_url or None, category, language,
+         relevance_threshold, notes, datetime.now(timezone.utc).isoformat()),
+    )
+    return cur.lastrowid
+
+
+def delete_user_source(conn: sqlite3.Connection, source_id: int) -> None:
+    conn.execute("DELETE FROM user_sources WHERE id = ?", (source_id,))
+
+
+# ── User keywords helpers ─────────────────────────────────────────────────────
+
+def get_user_keywords(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute("SELECT * FROM user_keywords ORDER BY created_at").fetchall()
+
+
+def add_user_keyword(conn: sqlite3.Connection, keyword: str,
+                     category: Optional[str], notes: str) -> int:
+    cur = conn.execute(
+        "INSERT INTO user_keywords (keyword, category, notes, created_at) VALUES (?, ?, ?, ?)",
+        (keyword, category or None, notes, datetime.now(timezone.utc).isoformat()),
+    )
+    return cur.lastrowid
+
+
+def delete_user_keyword(conn: sqlite3.Connection, keyword_id: int) -> None:
+    conn.execute("DELETE FROM user_keywords WHERE id = ?", (keyword_id,))
+
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS raw_articles (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -326,4 +374,25 @@ CREATE TABLE IF NOT EXISTS article_feedback (
     created_at  TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_feedback_article ON article_feedback(article_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS user_sources (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    name                TEXT NOT NULL,
+    home_url            TEXT NOT NULL,
+    feed_url            TEXT,
+    category            TEXT NOT NULL,
+    language            TEXT NOT NULL DEFAULT 'zh',
+    enabled             INTEGER NOT NULL DEFAULT 1,
+    relevance_threshold INTEGER NOT NULL DEFAULT 5,
+    notes               TEXT DEFAULT '',
+    created_at          TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_keywords (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    keyword     TEXT NOT NULL,
+    category    TEXT,
+    notes       TEXT DEFAULT '',
+    created_at  TEXT NOT NULL
+);
 """

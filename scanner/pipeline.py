@@ -9,12 +9,13 @@ from typing import Optional
 from .db import (
     get_conn, insert_raw_article, is_url_seen, insert_article,
     start_pipeline_run, finish_pipeline_run,
+    get_user_sources, get_user_keywords,
 )
 from .fetcher import fetch_all
 from .health import SourceRunResult
 from .llm import score_batch, summarize_batch, SCORE_BATCH_SIZE, SUMMARIZE_BATCH_SIZE
 from .loader import load_sources
-from .models import ScoredArticle
+from .models import ScoredArticle, SourceConfig
 from .settings import settings
 
 log = logging.getLogger(__name__)
@@ -37,8 +38,26 @@ async def run_scan(verbose: bool = False) -> dict:
                  dupes=0, llm_calls=0, errors=0)
 
     sources = load_sources()
+
+    # Merge user-defined sources from DB
+    with get_conn() as conn:
+        for row in get_user_sources(conn):
+            sources.append(SourceConfig(
+                name=row["name"],
+                home_url=row["home_url"],
+                feed_url=row["feed_url"],
+                category=row["category"],
+                language=row["language"],
+                enabled=True,
+                tier=2,
+                tags=["User Added"],
+                relevance_threshold=row["relevance_threshold"],
+                scrape_config={"link_selector": "a[href]", "max_links": 20},
+                notes=row["notes"] or "",
+            ))
+
     if verbose:
-        log.info("Loaded %d sources", len(sources))
+        log.info("Loaded %d sources (incl. user-added)", len(sources))
 
     with get_conn() as conn:
         run_id = start_pipeline_run(conn, started_at)
@@ -124,12 +143,22 @@ async def run_scan(verbose: bool = False) -> dict:
 
     stats["scored"] = len(score_map)
 
-    # Filter by threshold
+    # Load user keywords for force-pass matching
+    with get_conn() as conn:
+        kw_rows = get_user_keywords(conn)
+    keywords = [(r["keyword"].lower(), r["category"]) for r in kw_rows]
+
+    # Filter by threshold (or keyword match)
     passing: list[dict] = []
     for art in new_articles_by_id.values():
         score = score_map.get(art["id"], 0)
         art["relevance_score"] = score
-        if score >= art["threshold"]:
+        text = (art["title"] + " " + (art["snippet"] or "")).lower()
+        kw_match = any(
+            kw in text and (cat is None or cat == art["category"])
+            for kw, cat in keywords
+        )
+        if score >= art["threshold"] or kw_match:
             passing.append(art)
 
     stats["passed"] = len(passing)

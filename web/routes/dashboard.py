@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 from scanner.db import (
     get_conn, get_articles, search_articles, get_source_health,
     get_last_pipeline_run, get_votes_for_articles, upsert_vote,
+    get_all_user_sources, get_user_keywords,
 )
 
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
@@ -103,6 +104,57 @@ async def health_page(request: Request):
         "last_run": dict(last_run) if last_run else None,
         "categories": CATEGORIES,
     })
+
+
+@router.get("/manage", response_class=HTMLResponse)
+async def manage_page(request: Request):
+    with get_conn() as conn:
+        sources = [dict(r) for r in get_all_user_sources(conn)]
+        keywords = [dict(r) for r in get_user_keywords(conn)]
+    return templates.TemplateResponse(request=request, name="manage.html", context={
+        "sources": sources,
+        "keywords": keywords,
+        "categories": CATEGORIES,
+    })
+
+
+@router.post("/manage/keywords", response_class=HTMLResponse)
+async def add_keyword_htmx(
+    request: Request,
+    keyword: str = Form(...),
+    category: str = Form(""),
+    notes: str = Form(""),
+):
+    from scanner.db import add_user_keyword
+    with get_conn() as conn:
+        new_id = add_user_keyword(conn, keyword=keyword,
+                                   category=category or None, notes=notes)
+    kw = {"id": new_id, "keyword": keyword, "category": category or None, "notes": notes}
+    return templates.TemplateResponse(request=request, name="partials/keyword_row.html",
+                                      context={"kw": kw})
+
+
+@router.post("/manage/sources", response_class=HTMLResponse)
+async def add_source_htmx(
+    request: Request,
+    name: str = Form(...),
+    home_url: str = Form(...),
+    feed_url: str = Form(""),
+    category: str = Form(...),
+    language: str = Form("zh"),
+    relevance_threshold: int = Form(5),
+    notes: str = Form(""),
+):
+    from scanner.db import add_user_source
+    with get_conn() as conn:
+        new_id = add_user_source(conn, name=name, home_url=home_url,
+                                  feed_url=feed_url or None, category=category,
+                                  language=language, relevance_threshold=relevance_threshold,
+                                  notes=notes)
+    src = {"id": new_id, "name": name, "home_url": home_url, "category": category,
+           "language": language, "relevance_threshold": relevance_threshold}
+    return templates.TemplateResponse(request=request, name="partials/source_row.html",
+                                      context={"src": src})
 
 
 @router.post("/feedback", response_class=HTMLResponse)
