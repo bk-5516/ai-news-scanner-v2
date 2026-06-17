@@ -197,13 +197,23 @@ sources:
     home_url: "https://www.reuters.com/technology/artificial-intelligence/"
     tier: 1
     language: en
+    enabled: false
+    tags: ["Mainstream Media", "Wire"]
+    relevance_threshold: 6
+    notes: "DISABLED: fully JS-rendered, 0 links in static HTML. No working public RSS."
+
+  - name: "AP News — AI"
+    feed_url: null
+    home_url: "https://apnews.com/hub/artificial-intelligence"
+    tier: 1
+    language: en
     enabled: true
     tags: ["Mainstream Media", "Wire"]
     relevance_threshold: 6
     scrape_config:
-      link_selector: "a[href*='/technology/artificial-intelligence/']"
+      link_selector: "a[href*='apnews.com/article/']"
       max_links: 25
-    notes: "AI-specific section; HTML scrape since RSS is dead. May yield 0 if page is JS-rendered."
+    notes: "AP News AI hub — static HTML, confirmed working"
 
   - name: "Bloomberg Technology"
     feed_url: "https://feeds.bloomberg.com/technology/news.rss"
