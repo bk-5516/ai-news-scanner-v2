@@ -35,16 +35,16 @@ sources:
 
   - name: "AIbase资讯"
     feed_url: null
-    home_url: "https://www.aibase.com/zh/news"
+    home_url: "https://news.aibase.com/zh/news"
     tier: 2
     language: zh
     enabled: true
     tags: ["AI Tools", "Models"]
     relevance_threshold: 4
     scrape_config:
-      link_selector: "a[href*='/news/']"
+      link_selector: "a[href*='/zh/news/']"
       max_links: 25
-    notes: "Covers AI tools, applications, and model launches"
+    notes: "Chinese individual articles from news.aibase.com; each story is a distinct entry ranked by LLM"
 
   - name: "AI科技评论"
     feed_url: null

@@ -1,34 +1,45 @@
 #!/bin/bash
-# Pull the live SQLite DB from Railway down to your local data/news.db.
+# Pull the live SQLite DB from Railway and save a timestamped local backup.
 #
-# Usage:
-#   RAILWAY_APP_URL=https://your-app.railway.app \
-#   BACKUP_TOKEN=your_secret_token \
-#   ./scripts/sync_db.sh
+# Credentials (set once in your shell profile or ~/.ai_news_scanner_env):
+#   export RAILWAY_APP_URL=https://ai-news-scanner-v2-production.up.railway.app
+#   export BACKUP_TOKEN=<your token>
 #
-# Or set them in your shell profile to avoid repeating:
-#   export RAILWAY_APP_URL=https://your-app.railway.app
-#   export BACKUP_TOKEN=your_secret_token
+# Or pass them inline:
+#   RAILWAY_APP_URL=... BACKUP_TOKEN=... ./scripts/sync_db.sh
 
 set -e
 
+ENV_FILE="$HOME/.ai_news_scanner_env"
+if [[ -f "$ENV_FILE" ]]; then
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+fi
+
 if [[ -z "$RAILWAY_APP_URL" || -z "$BACKUP_TOKEN" ]]; then
   echo "Error: RAILWAY_APP_URL and BACKUP_TOKEN must be set."
-  echo "Usage: RAILWAY_APP_URL=https://... BACKUP_TOKEN=... ./scripts/sync_db.sh"
+  echo "Either set them in $ENV_FILE or pass them inline."
   exit 1
 fi
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-DEST="$PROJECT_DIR/data/news.db"
-BACKUP="$DEST.bak"
+DATA_DIR="$PROJECT_DIR/data"
+CURRENT="$DATA_DIR/news.db"
+TIMESTAMP=$(date +%Y-%m-%d_%H%M%S)
+ARCHIVE="$DATA_DIR/backups/news_${TIMESTAMP}.db"
 
-# Keep a backup of the previous local DB
-if [[ -f "$DEST" ]]; then
-  cp "$DEST" "$BACKUP"
-  echo "Backed up existing DB to $BACKUP"
-fi
+mkdir -p "$DATA_DIR/backups"
 
 echo "Downloading from $RAILWAY_APP_URL ..."
-curl -fS "${RAILWAY_APP_URL}/api/backup?token=${BACKUP_TOKEN}" -o "$DEST"
-echo "Synced to $DEST"
-echo "Article count: $(sqlite3 "$DEST" 'SELECT COUNT(*) FROM articles WHERE is_duplicate=0')"
+curl -fS "${RAILWAY_APP_URL}/api/backup?token=${BACKUP_TOKEN}" -o "$ARCHIVE"
+
+COUNT=$(sqlite3 "$ARCHIVE" 'SELECT COUNT(*) FROM articles WHERE is_duplicate=0' 2>/dev/null || echo "?")
+echo "Saved: $ARCHIVE ($COUNT articles)"
+
+# Update the symlink / copy to news.db so local server always has latest
+cp "$ARCHIVE" "$CURRENT"
+echo "Updated $CURRENT"
+
+# Keep only the last 14 backups
+ls -t "$DATA_DIR/backups"/news_*.db 2>/dev/null | tail -n +15 | xargs rm -f --
+echo "Done."
