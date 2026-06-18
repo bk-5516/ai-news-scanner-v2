@@ -174,11 +174,14 @@ sources:
     home_url: "https://www.stcn.com"
     tier: 2
     language: zh
-    enabled: false
+    enabled: true
     tags: ["Finance", "Policy", "Corporate"]
     relevance_threshold: 6
-    max_articles_per_run: 20
-    notes: "DISABLED: JS-rendered, no RSS, Google News RSS gives proxy URLs. Re-enable when RSS found."
+    max_articles_per_run: 25
+    scrape_config:
+      link_selector: "a[href*='/article/detail/']"
+      max_links: 30
+    notes: "Financial daily; static HTML confirmed. High threshold — broad content, LLM filters for AI/tech."
 
   - name: "新浪科技 (Sina Tech)"
     feed_url: null
