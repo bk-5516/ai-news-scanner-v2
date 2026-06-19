@@ -30,7 +30,9 @@ async def _scheduled_scan() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    log.info("DB path: %s (exists=%s)", settings.db_path, settings.db_path.exists())
     init_db()
+    log.info("DB initialised at %s", settings.db_path.resolve())
     scheduler.add_job(
         _scheduled_scan,
         "interval",
