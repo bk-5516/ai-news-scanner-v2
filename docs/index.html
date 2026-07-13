@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI News Scanner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .score-badge { font-size: 0.65rem; }
+    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen">
+
+  <nav class="bg-white border-b border-gray-200 sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 flex items-center justify-between h-12">
+      <span class="font-semibold text-gray-800 text-sm tracking-wide">AI News Scanner</span>
+      <div class="flex gap-4 text-sm">
+        <button onclick="setCategory('global_ai')" id="tab-global_ai"
+          class="tab-btn font-medium text-gray-900">Global AI</button>
+        <button onclick="setCategory('china_ai')" id="tab-china_ai"
+          class="tab-btn text-gray-500 hover:text-gray-900">China AI</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto px-4 py-6">
+
+    <!-- Filter bar -->
+    <div class="flex flex-wrap gap-3 mb-5 items-center">
+      <input id="search" type="search" placeholder="Search…" oninput="applyFilters()"
+        class="border border-gray-300 rounded px-3 py-1.5 text-sm w-44 focus:outline-none focus:ring-1 focus:ring-blue-500">
+
+      <div class="flex items-center gap-1.5 text-sm">
+        <label class="text-gray-500">Score ≥</label>
+        <select id="min-score" onchange="applyFilters()"
+          class="border border-gray-300 rounded px-2 py-1.5 text-sm">
+          <option value="4">4</option>
+          <option value="5" selected>5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+        </select>
+      </div>
+
+      <div class="flex items-center gap-1.5 text-sm">
+        <label class="text-gray-500">Last</label>
+        <select id="days" onchange="applyFilters()"
+          class="border border-gray-300 rounded px-2 py-1.5 text-sm">
+          <option value="1">1 day</option>
+          <option value="3">3 days</option>
+          <option value="7" selected>7 days</option>
+          <option value="14">14 days</option>
+          <option value="30">30 days</option>
+          <option value="90">All</option>
+        </select>
+      </div>
+
+      <div id="theme-filters" class="flex flex-wrap gap-1"></div>
+
+      <span id="last-scan" class="ml-auto text-xs text-gray-400 shrink-0"></span>
+    </div>
+
+    <div id="count" class="text-xs text-gray-400 mb-3"></div>
+    <div id="articles" class="space-y-3"></div>
+    <p id="empty" class="hidden text-center py-16 text-sm text-gray-400">No articles match your filters.</p>
+    <p id="loading" class="text-center py-16 text-sm text-gray-400">Loading…</p>
+
+  </main>
+
+  <script>
+    const THEMES = [
+      "Foundation Models","Policy & Regulation","Hardware & Chips",
+      "Corporate Moves","Research","Applications","Geopolitics",
+      "Funding","Robotics","Safety & Alignment","Cybersecurity"
+    ];
+
+    let allArticles = [];
+    let activeCategory = 'global_ai';
+    let activeThemes = new Set();
+
+    async function load() {
+      try {
+        const res = await fetch('data/articles.json?t=' + Date.now());
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        allArticles = data.articles || [];
+
+        if (data.last_scan?.started_at) {
+          document.getElementById('last-scan').textContent =
+            'Last scan: ' + data.last_scan.started_at.slice(0, 16).replace('T', ' ') + ' UTC';
+        }
+
+        document.getElementById('loading').classList.add('hidden');
+        renderThemePills();
+        applyFilters();
+      } catch (e) {
+        document.getElementById('loading').textContent =
+          'No data yet — the GitHub Actions scan has not run. Trigger it from the Actions tab.';
+      }
+    }
+
+    function renderThemePills() {
+      document.getElementById('theme-filters').innerHTML = THEMES.map(t => {
+        const id = 'theme-' + t.replace(/\W+/g, '-');
+        return `<button id="${id}" onclick="toggleTheme('${t}')"
+          class="theme-btn text-xs px-2 py-0.5 rounded-full border border-gray-200 text-gray-500
+                 hover:border-blue-300 hover:text-blue-600 transition-colors">${t}</button>`;
+      }).join('');
+    }
+
+    function toggleTheme(t) {
+      activeThemes.has(t) ? activeThemes.delete(t) : activeThemes.add(t);
+      const btn = document.getElementById('theme-' + t.replace(/\W+/g, '-'));
+      btn.classList.toggle('bg-blue-50', activeThemes.has(t));
+      btn.classList.toggle('border-blue-400', activeThemes.has(t));
+      btn.classList.toggle('text-blue-700', activeThemes.has(t));
+      btn.classList.toggle('border-gray-200', !activeThemes.has(t));
+      btn.classList.toggle('text-gray-500', !activeThemes.has(t));
+      applyFilters();
+    }
+
+    function setCategory(cat) {
+      activeCategory = cat;
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.toggle('font-medium', b.id === 'tab-' + cat);
+        b.classList.toggle('text-gray-900', b.id === 'tab-' + cat);
+        b.classList.toggle('text-gray-500', b.id !== 'tab-' + cat);
+      });
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const q = document.getElementById('search').value.toLowerCase();
+      const minScore = parseInt(document.getElementById('min-score').value);
+      const days = parseInt(document.getElementById('days').value);
+      const cutoff = new Date(Date.now() - days * 86400000).toISOString();
+
+      const filtered = allArticles.filter(a => {
+        if (a.category !== activeCategory) return false;
+        if ((a.relevance_score || 0) < minScore) return false;
+        const date = a.stored_at || a.published_at || '';
+        if (date && date < cutoff) return false;
+        if (activeThemes.size > 0 && !(a.themes || []).some(t => activeThemes.has(t))) return false;
+        if (q) {
+          const hay = ((a.title || '') + ' ' + (a.summary || '')).toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      document.getElementById('count').textContent =
+        filtered.length ? `${filtered.length} article${filtered.length !== 1 ? 's' : ''}` : '';
+      document.getElementById('empty').classList.toggle('hidden', filtered.length > 0);
+      document.getElementById('articles').innerHTML = filtered.map(articleHtml).join('');
+    }
+
+    function articleHtml(a) {
+      const score = a.relevance_score || 0;
+      const scoreClass = score >= 8 ? 'bg-green-600' : score >= 6 ? 'bg-blue-500' : 'bg-yellow-500';
+      const date = a.published_at
+        ? a.published_at.slice(0, 10)
+        : (a.stored_at ? 'fetched ' + a.stored_at.slice(0, 10) : '');
+      const themes = (a.themes || []).map(t =>
+        `<span class="px-1.5 py-0.5 bg-gray-100 rounded text-gray-500">${esc(t)}</span>`
+      ).join('');
+
+      return `
+        <div class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+          <div class="flex items-start gap-3 mb-2">
+            <a href="${esc(a.url || '')}" target="_blank" rel="noopener"
+               class="flex-1 text-sm font-medium text-gray-900 hover:text-blue-600 hover:underline leading-snug">
+              ${esc(a.title || '(no title)')}
+            </a>
+            <span class="score-badge shrink-0 px-1.5 py-0.5 rounded font-semibold ${scoreClass} text-white">
+              ${score}
+            </span>
+          </div>
+          ${a.summary ? `<p class="text-xs text-gray-600 mb-2 line-clamp-3">${esc(a.summary)}</p>` : ''}
+          <div class="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+            <span class="font-medium text-gray-500">${esc(a.source_name || '')}</span>
+            ${date ? `<span>${date}</span>` : ''}
+            ${themes}
+          </div>
+        </div>`;
+    }
+
+    function esc(s) {
+      return String(s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    load();
+  </script>
+
+</body>
+</html>
