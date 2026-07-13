@@ -1,5 +1,7 @@
 .env
 data/
+!docs/data/
+!docs/data/articles.json
 __pycache__/
 *.pyc
 *.pyo
