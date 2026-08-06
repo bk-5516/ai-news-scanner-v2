@@ -2,6 +2,7 @@
 from __future__ import annotations
 import json
 import logging
+import re
 from dataclasses import dataclass
 from typing import Optional
 
@@ -114,11 +115,22 @@ def _score_system(category: str) -> str:
 
 
 def _strip_fences(text: str) -> str:
-    """Strip markdown code fences (```json ... ```) from LLM responses."""
+    """Extract the JSON array from an LLM response.
+
+    Handles bare JSON, markdown-fenced JSON, and JSON preceded or followed by
+    prose ("Looking at these articles, ...") — the model does not always obey
+    the "return ONLY JSON" instruction, and a single stray sentence used to
+    zero out an entire batch.
+    """
     text = text.strip()
-    if text.startswith("```"):
-        text = text.split("\n", 1)[-1]  # drop opening fence line
-        text = text.rsplit("```", 1)[0]  # drop closing fence
+    # Prefer the contents of a ```json ... ``` fence wherever it appears
+    fence = re.search(r"```(?:json)?\s*(.*?)```", text, re.DOTALL)
+    if fence:
+        text = fence.group(1).strip()
+    # Fall back to the outermost [ ... ] span, dropping any surrounding prose
+    start, end = text.find("["), text.rfind("]")
+    if start != -1 and end > start:
+        text = text[start:end + 1]
     return text.strip()
 
 
@@ -161,7 +173,8 @@ def score_batch(articles: list[dict], category: str) -> tuple[list[ScoreResult],
             for item in data
         ]
     except (json.JSONDecodeError, KeyError, TypeError) as e:
-        log.warning("score_batch parse error: %s — raw: %.200s", e, raw)
+        log.error("score_batch parse error (%d articles zeroed): %s — raw: %.300s",
+                  len(articles), e, raw)
         results = [ScoreResult(article_id=str(a["id"]), score=0, reason="parse error") for a in articles]
 
     return results, cache_hit
