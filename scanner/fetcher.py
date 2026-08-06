@@ -122,8 +122,16 @@ _META_RE = re.compile(
     r"^(刚刚|今天|昨天|前天|\d+\s*(分钟|小时|天|周|月)前"
     r"|\d+(\.\d+)?\s*[KMB]"
     r"|[\d\s./:\-—]+"
-    r"|\d{1,2}:\d{2}.*)$"
+    r"|\d{1,2}:\d{2}.*"
+    r"|(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*\d{1,2}[,\s].*"
+    r"|(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day\s+\d{1,2}\s+\w+\s+\d{4}"
+    r")$",
+    re.IGNORECASE,
 )
+
+# A short leading block is a section kicker ("Product", "Announcements"),
+# not the headline — skip it when a real headline follows.
+_KICKER_MAX_LEN = 16
 
 
 def _leaf_texts(el) -> list[str]:
@@ -155,6 +163,10 @@ def _title_and_snippet(a) -> tuple[str, str]:
         return title, (rest[0] if rest else "")
 
     blocks = [t for t in _leaf_texts(a) if not _META_RE.match(t)]
+    # Drop a leading section kicker, but only if a longer block follows it
+    while (len(blocks) > 1 and len(blocks[0]) <= _KICKER_MAX_LEN
+           and len(blocks[1]) > len(blocks[0])):
+        blocks.pop(0)
     if blocks:
         return blocks[0], (blocks[1] if len(blocks) > 1 else "")
 

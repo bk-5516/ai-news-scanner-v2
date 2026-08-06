@@ -134,15 +134,39 @@ def _strip_fences(text: str) -> str:
     return text.strip()
 
 
+def _index_articles(articles: list[dict]) -> tuple[str, dict[str, str]]:
+    """Render articles with short numeric labels and return the index→id map.
+
+    Article ids look like "ChinaTalk (Jordan Schneider)::0cc7f4ca". Asked to
+    echo those back, the model reliably drops the source prefix and returns
+    the bare hash, so the id lookup missed and the whole batch silently
+    scored 0. Small integers survive the round trip intact.
+    """
+    lines = "\n".join(
+        f'[{i}] Title: {a["title"]}\nSnippet: {a["snippet"] or "(no snippet)"}'
+        for i, a in enumerate(articles, 1)
+    )
+    return lines, {str(i): a["id"] for i, a in enumerate(articles, 1)}
+
+
+def _resolve_id(raw_id: object, index_map: dict[str, str]) -> Optional[str]:
+    """Map a model-returned label back to a real article id."""
+    key = str(raw_id).strip().strip("[]")
+    if key in index_map:
+        return index_map[key]
+    # Tolerate a model that echoes the id itself, whole or hash-only
+    for real in index_map.values():
+        if key == real or real.endswith(f"::{key}"):
+            return real
+    return None
+
+
 def score_batch(articles: list[dict], category: str) -> tuple[list[ScoreResult], bool]:
     """Score a batch of articles for relevance. Returns (results, cache_hit)."""
     if not articles:
         return [], False
 
-    article_lines = "\n".join(
-        f'[{a["id"]}] Title: {a["title"]}\nSnippet: {a["snippet"] or "(no snippet)"}'
-        for a in articles
-    )
+    article_lines, index_map = _index_articles(articles)
     user_content = f"Score these {len(articles)} articles:\n\n{article_lines}"
 
     client = get_client()
@@ -164,14 +188,21 @@ def score_batch(articles: list[dict], category: str) -> tuple[list[ScoreResult],
 
     try:
         data = json.loads(raw)
-        results = [
-            ScoreResult(
-                article_id=str(item["id"]),
+        results = []
+        for item in data:
+            article_id = _resolve_id(item.get("id"), index_map)
+            if article_id is None:
+                log.warning("score_batch: unresolvable id %r — article scores 0",
+                            item.get("id"))
+                continue
+            results.append(ScoreResult(
+                article_id=article_id,
                 score=int(item.get("score", 0)),
                 reason=item.get("reason", ""),
-            )
-            for item in data
-        ]
+            ))
+        if len(results) < len(articles):
+            log.warning("score_batch: %d/%d articles scored — %d defaulted to 0",
+                        len(results), len(articles), len(articles) - len(results))
     except (json.JSONDecodeError, KeyError, TypeError) as e:
         log.error("score_batch parse error (%d articles zeroed): %s — raw: %.300s",
                   len(articles), e, raw)
@@ -185,10 +216,7 @@ def summarize_batch(articles: list[dict]) -> list[SummarizeResult]:
     if not articles:
         return []
 
-    article_lines = "\n".join(
-        f'[{a["id"]}] Title: {a["title"]}\nSnippet: {a["snippet"] or "(no snippet)"}'
-        for a in articles
-    )
+    article_lines, index_map = _index_articles(articles)
     user_content = f"Summarize and tag these {len(articles)} articles:\n\n{article_lines}"
 
     client = get_client()
@@ -209,15 +237,19 @@ def summarize_batch(articles: list[dict]) -> list[SummarizeResult]:
 
     try:
         data = json.loads(raw)
-        results = [
-            SummarizeResult(
-                article_id=str(item["id"]),
+        results = []
+        for item in data:
+            article_id = _resolve_id(item.get("id"), index_map)
+            if article_id is None:
+                log.warning("summarize_batch: unresolvable id %r", item.get("id"))
+                continue
+            dup = item.get("duplicate_of")
+            results.append(SummarizeResult(
+                article_id=article_id,
                 summary=item.get("summary", ""),
                 themes=item.get("themes", []),
-                duplicate_of=item.get("duplicate_of") or None,
-            )
-            for item in data
-        ]
+                duplicate_of=_resolve_id(dup, index_map) if dup else None,
+            ))
     except (json.JSONDecodeError, KeyError, TypeError) as e:
         log.warning("summarize_batch parse error: %s — raw: %.200s", e, raw)
         results = [
