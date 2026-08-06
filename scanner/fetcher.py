@@ -3,6 +3,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import re
 import time
 from datetime import datetime, timezone
 from typing import Optional
@@ -114,6 +115,53 @@ def _parse_rss(content: bytes, source: SourceConfig, fetched_at: str) -> list[Ra
     return articles
 
 
+_BLOCK_TAGS = ["div", "span", "p", "h1", "h2", "h3", "h4", "h5", "li"]
+
+# Timestamps, view counts and other card chrome — never a headline
+_META_RE = re.compile(
+    r"^(刚刚|今天|昨天|前天|\d+\s*(分钟|小时|天|周|月)前"
+    r"|\d+(\.\d+)?\s*[KMB]"
+    r"|[\d\s./:\-—]+"
+    r"|\d{1,2}:\d{2}.*)$"
+)
+
+
+def _leaf_texts(el) -> list[str]:
+    """Text of block elements inside `el` that contain no nested blocks."""
+    out: list[str] = []
+    for node in el.find_all(_BLOCK_TAGS):
+        if node.find(_BLOCK_TAGS):
+            continue  # not a leaf — its text is just its children's
+        t = node.get_text(strip=True)
+        if t and t not in out:
+            out.append(t)
+    return out
+
+
+def _title_and_snippet(a) -> tuple[str, str]:
+    """Split a link card into a headline and a summary.
+
+    Index pages routinely wrap a headline, a summary and a timestamp in one
+    <a>, so get_text() on the anchor glues them into a 150-char pseudo-title.
+    Prefer an explicit heading; otherwise take the first leaf text block and
+    use the next one as the snippet — which also gives the scorer real body
+    text instead of the empty snippet scraped sources used to send.
+    """
+    heading = a.find(["h1", "h2", "h3", "h4", "h5"])
+    if heading and heading.get_text(strip=True):
+        title = heading.get_text(strip=True)
+        rest = [t for t in _leaf_texts(a)
+                if t != title and not _META_RE.match(t)]
+        return title, (rest[0] if rest else "")
+
+    blocks = [t for t in _leaf_texts(a) if not _META_RE.match(t)]
+    if blocks:
+        return blocks[0], (blocks[1] if len(blocks) > 1 else "")
+
+    fallback = a.get("title") or a.get("aria-label") or a.get_text(strip=True)
+    return (fallback or "").strip(), ""
+
+
 def _parse_html(html: str, base_url: str, source: SourceConfig,
                 fetched_at: str) -> list[RawArticle]:
     scrape = source.scrape_config or {}
@@ -138,7 +186,7 @@ def _parse_html(html: str, base_url: str, source: SourceConfig,
             continue
         seen.add(href)
 
-        title = a.get_text(strip=True) or a.get("title", "").strip()
+        title, snippet = _title_and_snippet(a)
         if len(title) < 8:
             continue
         # skip obvious nav links
@@ -152,7 +200,7 @@ def _parse_html(html: str, base_url: str, source: SourceConfig,
             source_name=source.name,
             category=source.category,
             fetched_at=fetched_at,
-            snippet="",
+            snippet=snippet,
             published_at=None,
             raw_feed_entry=json.dumps({"title": title, "link": href}, ensure_ascii=False),
         ))
