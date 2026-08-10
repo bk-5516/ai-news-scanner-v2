@@ -46,6 +46,17 @@ sources:
       max_links: 25
     notes: "Chinese individual articles from news.aibase.com; each story is a distinct entry ranked by LLM"
 
+  - name: "电子工程专辑 (EE Times China)"
+    feed_url: "https://news.google.com/rss/search?q=site%3Aeet-china.com%20when%3A14d%20%28AI%20OR%20%E4%BA%BA%E5%B7%A5%E6%99%BA%E8%83%BD%20OR%20%E8%8A%AF%E7%89%87%20OR%20%E7%AE%97%E5%8A%9B%20OR%20%E5%8D%8A%E5%AF%BC%E4%BD%93%29&hl=zh-CN&gl=CN&ceid=CN:zh-Hans"
+    home_url: "https://www.eet-china.com/news/"
+    tier: 2
+    language: zh
+    enabled: true
+    tags: ["Hardware & Chips", "Semiconductors", "Tech Media"]
+    relevance_threshold: 5
+    max_articles_per_run: 25
+    notes: "Electronics/semiconductor trade press. Direct site is unreachable from outside China (TLS connects, then HTTP hangs), so sourced via Google News RSS with an AI/chip query that also filters out the 面包板社区 sister forum."
+
   - name: "AI科技评论"
     feed_url: null
     home_url: "https://aitechtalk.substack.com"
